@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.alpha.FlashRide.ResponseStructure;
+import com.alpha.FlashRide.DTO.AvailableVehiclesDTO;
+import com.alpha.FlashRide.DTO.RegisterCustomerDTO;
 import com.alpha.FlashRide.Service.CustomerService;
 import com.alpha.FlashRide.entity.Customer;
 
@@ -37,7 +39,7 @@ import com.alpha.FlashRide.entity.Customer;
 
 	    @GetMapping("/seeavailableVehicles")
 	    public ResponseStructure<AvailableVehiclesDTO> availableVehicles(@RequestParam long mobileNo,@RequestParam String destination) {
-
+          
 	        return customerservice.getAvailableVehicles(mobileNo, destination);
 	    }
 	    

@@ -1,6 +1,8 @@
 package com.alpha.FlashRide.Service;
 
 
+import java.sql.Date;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,8 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import com.alpha.FlashRide.ResponseStructure;
+import com.alpha.FlashRide.DTO.CancelBookingResponseDTO;
 import com.alpha.FlashRide.DTO.RegisterDriverVehicleDTO;
 import com.alpha.FlashRide.DTO.RideCompletionDTO;
+import com.alpha.FlashRide.DTO.UpiDTO;
 import com.alpha.FlashRide.Repository.BookingRepository;
 import com.alpha.FlashRide.Repository.CustomerRepository;
 import com.alpha.FlashRide.Repository.DriverRepository;
@@ -22,11 +26,15 @@ import com.alpha.FlashRide.entity.Customer;
 import com.alpha.FlashRide.entity.Driver;
 import com.alpha.FlashRide.entity.Payment;
 import com.alpha.FlashRide.entity.Vehicle;
+import com.alpha.FlashRide.exception.DriverNotFoundException;
 
 
 
 @Service
 public class DriverService {
+	
+	 @Autowired
+	    private RestTemplate restTemplate;
 
     @Autowired
     private DriverRepository dr;
@@ -179,8 +187,7 @@ public class DriverService {
 
 //CompletionRide
     
-    public ResponseEntity<ResponseStructure<RideCompletionDTO>>
-    completeRide(int bookingId, String paymentType) {
+    public ResponseEntity<ResponseStructure<RideCompletionDTO>>  completeRide(int bookingId, String paymentType) {
 
         if (paymentType.equalsIgnoreCase("CASH")) {
             return cashPayment(bookingId);
@@ -212,10 +219,43 @@ public class DriverService {
     
     // UPI PAYMENT
     
+//    private ResponseEntity<ResponseStructure<RideCompletionDTO>>
+//    upiPayment(int bookingId) {
+//
+//        RideCompletionDTO dto = completeRideCommonLogic(bookingId, "UPI");
+//
+//        ResponseStructure<RideCompletionDTO> rs = new ResponseStructure<>();
+//        rs.setStatuscode(200);
+//        rs.setMessage("UPI payment successful");
+//        rs.setData(dto);
+//
+//        return ResponseEntity.ok(rs);
+//    }
+    
     private ResponseEntity<ResponseStructure<RideCompletionDTO>>
     upiPayment(int bookingId) {
 
+        // ✅ COMMON RIDE COMPLETION FIRST
         RideCompletionDTO dto = completeRideCommonLogic(bookingId, "UPI");
+
+        Booking booking = dto.getBooking();
+
+        // ✅ GENERATE UPI QR
+        String upiId = booking.getVehicle().getDriver().getUpiid();
+
+
+        String qrUrl = "https://api.qrserver.com/v1/create-qr-code/"
+                + "?size=300x300&data=upi://pay?pa=" + upiId;
+
+        byte[] qrBytes = restTemplate.getForObject(qrUrl, byte[].class);
+
+        // ✅ CREATE UPI DTO
+        UpiDTO upiDTO = new UpiDTO();
+        upiDTO.setFare(booking.getFare());
+        upiDTO.setQr(qrBytes);
+
+        // ✅ ATTACH TO MAIN DTO
+        dto.setUpiDetails(upiDTO);
 
         ResponseStructure<RideCompletionDTO> rs = new ResponseStructure<>();
         rs.setStatuscode(200);
@@ -224,6 +264,8 @@ public class DriverService {
 
         return ResponseEntity.ok(rs);
     }
+
+
 
     // COMMON RIDE COMPLETION LOGIC
     
@@ -264,8 +306,68 @@ public class DriverService {
         return dto;
     }
 
-   
+
+//--------------------------------------------------------------------
+	public  CancelBookingResponseDTO cancelBookingByDriver(int driverId, int bookingId) {
+		
+
+		        // Counter to track how many bookings the driver cancelled today
+		        int count = 0;
+
+		        // Get today's date (used to check today's cancellations only)
+		        Date todayDate = new Date(System.currentTimeMillis());
+
+		        // Fetch all bookings of this driver for today's date
+		        // Uses Booking → Vehicle → Driver relationship internally (JPQL join)
+		        List<Booking> bookingList =
+		                br.findByDriverIdAndBookingDate(driverId, todayDate);
+
+		        // Fetch the specific booking which the driver wants to cancel
+		        Booking book = br.findById(bookingId)
+		                .orElseThrow(() -> new RuntimeException("Booking not found"));
+
+		        // Iterate over today's bookings of the driver
+		        // Count how many bookings are already cancelled by the driver
+		        for (Booking b : bookingList) {
+		            if ("cancelledByDriver".equalsIgnoreCase(b.getBookingStatus())) {
+		                count++;
+		            }
+		        }
+
+		        // Fetch driver details using driverId
+		        Driver driver = dr.findById(driverId)
+		                .orElseThrow(() -> new RuntimeException("Driver not found"));
+
+		        // Business rule:
+		        // If driver cancels 4 or more bookings in a single day,
+		        // block the driver from further bookings
+		        if (count >= 4) {
+		            driver.setStatus("BLOCKED");
+		        }
+
+		        // Update the current booking status as cancelled by driver
+		        book.setBookingStatus("cancelledByDriver");
+
+		        // Save updated driver status in database
+		        dr.save(driver);
+
+		        // Save updated booking status in database
+		        br.save(book);
+
+		        // Return response DTO to controller
+		        return new CancelBookingResponseDTO(
+		                "Booking cancelled successfully",
+		                driver.getStatus(),
+		                book.getBookingStatus()
+		        );
+		    }
+		
+	
 
 	}
+
+   
+
+	
 
     

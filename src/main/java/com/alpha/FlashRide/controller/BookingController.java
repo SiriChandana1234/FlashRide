@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.alpha.FlashRide.ResponseStructure;
+import com.alpha.FlashRide.DTO.BookingDTO;
 import com.alpha.FlashRide.Service.BookingService;
 import com.alpha.FlashRide.entity.Booking;
 

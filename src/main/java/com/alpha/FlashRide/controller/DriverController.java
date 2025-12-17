@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.alpha.FlashRide.ResponseStructure;
+import com.alpha.FlashRide.DTO.CancelBookingResponseDTO;
 import com.alpha.FlashRide.DTO.RegisterDriverVehicleDTO;
 import com.alpha.FlashRide.DTO.RideCompletionDTO;
 import com.alpha.FlashRide.Service.DriverService;
@@ -58,7 +59,19 @@ public class DriverController {
         return ds.completeRide(bookingId, paymentType);
     }
 	
+	@PostMapping("/cancelbooking")
+	public ResponseEntity<CancelBookingResponseDTO> cancelBooking(
+	        @RequestParam("driverId") int driverId,
+	        @RequestParam("bookingId") int bookingId) {
+
+	    return ResponseEntity.ok(
+	            ds.cancelBookingByDriver(driverId, bookingId)
+	    );
+	}
+
+	}
+
 
 
 	
-}
+

@@ -4,13 +4,15 @@ import com.alpha.FlashRide.entity.Booking;
 import com.alpha.FlashRide.entity.Customer;
 import com.alpha.FlashRide.entity.Payment;
 import com.alpha.FlashRide.entity.Vehicle;
-
 public class RideCompletionDTO {
 
     private Booking booking;
     private Payment payment;
     private Vehicle vehicle;
     private Customer customer;
+
+    // ✅ OPTIONAL (ONLY FOR UPI)
+    private UpiDTO upiDetails;
 
     public Booking getBooking() {
         return booking;
@@ -42,5 +44,13 @@ public class RideCompletionDTO {
 
     public void setCustomer(Customer customer) {
         this.customer = customer;
+    }
+
+    public UpiDTO getUpiDetails() {
+        return upiDetails;
+    }
+
+    public void setUpiDetails(UpiDTO upiDetails) {
+        this.upiDetails = upiDetails;
     }
 }

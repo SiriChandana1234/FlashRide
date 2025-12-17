@@ -17,12 +17,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import com.alpha.FlashRide.ResponseStructure;
+import com.alpha.FlashRide.DTO.AvailableVehiclesDTO;
+import com.alpha.FlashRide.DTO.CustomerActiveBookingDTO;
+import com.alpha.FlashRide.DTO.RegisterCustomerDTO;
+import com.alpha.FlashRide.DTO.VehicleDetailsDTO;
 import com.alpha.FlashRide.Repository.BookingRepository;
 import com.alpha.FlashRide.Repository.CustomerRepository;
 import com.alpha.FlashRide.Repository.VehicleRepository;
 import com.alpha.FlashRide.entity.Booking;
 import com.alpha.FlashRide.entity.Customer;
 import com.alpha.FlashRide.entity.Vehicle;
+import com.alpha.FlashRide.exception.CoordinatesNotFoundException;
+import com.alpha.FlashRide.exception.CustomerNotFoundException;
+import com.alpha.FlashRide.exception.DistanceCalculationFailedException;
+import com.alpha.FlashRide.exception.InvalidLocationException;
 
 import jakarta.transaction.Transactional;
 
@@ -44,8 +52,8 @@ public class CustomerService {
     @Value("${locationiq.api.key}")
     private String apiKey;
 
-    private final String distanceMatrixApiKey =
-            "De9l1ffh7aQ6Fmj1stHC0PJzNexhQLZYOQNQXpHZJv5INb0ovhhhKJxUo3vRcpJD";
+    @Value("${distancematrix.api.key}")
+    private String distanceMatrixApiKey;
 
     
     // SAVE CUSTOMER + GET CITY FROM COORDINATES

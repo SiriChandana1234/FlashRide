@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import com.alpha.FlashRide.ResponseStructure;
+import com.alpha.FlashRide.DTO.BookingDTO;
 import com.alpha.FlashRide.Repository.BookingRepository;
 import com.alpha.FlashRide.Repository.CustomerRepository;
 import com.alpha.FlashRide.Repository.DriverRepository;
