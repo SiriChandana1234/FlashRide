@@ -25,6 +25,8 @@ package com.alpha.FlashRide.entity;
 		private long mobileNo;
 		private String emailId;
 		private String currentLoc;
+		private int penaltyCount = 0;
+
 		
 		@Column(name="bookingflag")
 		private boolean bookingflag = false;
@@ -127,6 +129,14 @@ package com.alpha.FlashRide.entity;
 			return "Customer [id=" + id + ", name=" + name + ", age=" + age + ", gender=" + gender + ", mobileNo="
 					+ mobileNo + ", emailId=" + emailId + ", currentLoc=" + currentLoc + ", bookingflag=" + bookingflag
 					+ ", bookinglist=" + bookinglist + "]";
+		}
+
+		public int getPenaltyCount() {
+			return penaltyCount;
+		}
+
+		public void setPenaltyCount(int penaltyCount) {
+			this.penaltyCount = penaltyCount;
 		}
 		
 	}

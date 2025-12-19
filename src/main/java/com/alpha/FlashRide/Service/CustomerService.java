@@ -19,6 +19,7 @@ import org.springframework.web.client.RestTemplate;
 import com.alpha.FlashRide.ResponseStructure;
 import com.alpha.FlashRide.DTO.AvailableVehiclesDTO;
 import com.alpha.FlashRide.DTO.CustomerActiveBookingDTO;
+import com.alpha.FlashRide.DTO.CustomerCancelBookingResponseDTO;
 import com.alpha.FlashRide.DTO.RegisterCustomerDTO;
 import com.alpha.FlashRide.DTO.VehicleDetailsDTO;
 import com.alpha.FlashRide.Repository.BookingRepository;
@@ -45,6 +46,9 @@ public class CustomerService {
 
     @Autowired
     private BookingRepository bookingRepo;
+    
+    @Autowired
+    private LocationService ls;
 
     @Autowired
     private RestTemplate restTemplate;
@@ -54,33 +58,9 @@ public class CustomerService {
 
     @Value("${distancematrix.api.key}")
     private String distanceMatrixApiKey;
-
     
-    // SAVE CUSTOMER + GET CITY FROM COORDINATES
+//========separate method to get city from latitude ,longitude========
     
-
-    public ResponseStructure<String> saveCustomer(RegisterCustomerDTO dto) {
-
-        String city = getCityFromCoordinates(dto.getLatitude(), dto.getLongitude());
-
-        Customer c = new Customer();
-        c.setName(dto.getName());
-        c.setEmailId(dto.getEmailId());
-        c.setAge(dto.getAge());
-        c.setGender(dto.getGender());
-        c.setMobileNo(dto.getMobileNo());
-        c.setCurrentLoc(city);
-        // booking list remains empty as per your requirement
-
-        customerRepo.save(c);
-
-        ResponseStructure<String> rs = new ResponseStructure<>();
-        rs.setStatuscode(HttpStatus.OK.value());
-        rs.setMessage("Customer registered successfully");
-        rs.setData("Saved");
-        return rs;
-    }
-
     private String getCityFromCoordinates(String lat, String lon) {
         try {
             String url = "https://us1.locationiq.com/v1/reverse?key=" + apiKey +
@@ -103,40 +83,7 @@ public class CustomerService {
             return "Unknown";
         }
     }
-
-   
-    // DELETE CUSTOMER
-    
-
-    @Transactional
-    public ResponseStructure<String> deletecustomer(long mobileNo) {
-
-        Customer c = customerRepo.findByMobileNo(mobileNo)
-                .orElseThrow(CustomerNotFoundException::new);
-
-        customerRepo.delete(c);
-
-        ResponseStructure<String> rs = new ResponseStructure<>();
-        rs.setStatuscode(HttpStatus.OK.value());
-        rs.setMessage("Customer deleted");
-        rs.setData("Deleted");
-        return rs;
-    }
-
-    // FIND CUSTOMER
-   
-    public ResponseStructure<Customer> findCustomer(long mobileNo) {
-
-        Customer c = customerRepo.findByMobileNo(mobileNo)
-                .orElseThrow(CustomerNotFoundException::new);
-
-        ResponseStructure<Customer> rs = new ResponseStructure<>();
-        rs.setStatuscode(HttpStatus.OK.value());
-        rs.setMessage("Customer found");
-        rs.setData(c);
-        return rs;
-    }
-    
+  //====separate method to validate the destination, if coordinates fetches then it is correct destination
     private void validateDestination(String destination) {
 
         if (destination == null || destination.isBlank()) {
@@ -153,7 +100,6 @@ public class CustomerService {
             throw new InvalidLocationException();
         }
 
-        //  List should not be empty
         if (list.isEmpty()) {
             throw new InvalidLocationException();
         }
@@ -164,7 +110,6 @@ public class CustomerService {
             throw new InvalidLocationException();
         }
 
-        //  Latitude and longitude must exist
         if (!map.containsKey("lat") || !map.containsKey("lon")) {
             throw new InvalidLocationException();
         }
@@ -172,7 +117,6 @@ public class CustomerService {
         String lat = map.get("lat").toString();
         String lon = map.get("lon").toString();
 
-        //  Must be numeric
         if (!isNumber(lat) || !isNumber(lon)) {
             throw new InvalidLocationException();
         }
@@ -189,10 +133,62 @@ public class CustomerService {
         return true;
     }
 
+    //=============================================================
+    public ResponseStructure<String> saveCustomer(RegisterCustomerDTO dto) {
 
-    // GET AVAILABLE VEHICLES
+        String city = getCityFromCoordinates(dto.getLatitude(), dto.getLongitude());
 
+        Customer c = new Customer();
+        c.setName(dto.getName());
+        c.setEmailId(dto.getEmailId());
+        c.setAge(dto.getAge());
+        c.setGender(dto.getGender());
+        c.setMobileNo(dto.getMobileNo());
+        c.setCurrentLoc(city);
+        // booking list remains empty 
+
+        customerRepo.save(c);
+
+        ResponseStructure<String> rs = new ResponseStructure<>();
+        rs.setStatuscode(HttpStatus.OK.value());
+        rs.setMessage("Customer registered successfully");
+        rs.setData("Saved");
+        return rs;
+    }
+
+
+
+ //===========================================================  
+
+    @Transactional
+    public ResponseStructure<String> deletecustomer(long mobileNo) {
+
+        Customer c = customerRepo.findByMobileNo(mobileNo)
+                .orElseThrow(CustomerNotFoundException::new);
+
+        customerRepo.delete(c);
+
+        ResponseStructure<String> rs = new ResponseStructure<>();
+        rs.setStatuscode(HttpStatus.OK.value());
+        rs.setMessage("Customer deleted");
+        rs.setData("Deleted");
+        return rs;
+    }
+//=========================================================================
+   
+    public ResponseStructure<Customer> findCustomer(long mobileNo) {
+
+        Customer c = customerRepo.findByMobileNo(mobileNo)
+                .orElseThrow(CustomerNotFoundException::new);
+
+        ResponseStructure<Customer> rs = new ResponseStructure<>();
+        rs.setStatuscode(HttpStatus.OK.value());
+        rs.setMessage("Customer found");
+        rs.setData(c);
+        return rs;
+    }
     
+//==========================================================================
     public ResponseStructure<AvailableVehiclesDTO> getAvailableVehicles(long mobileNumber, String destinationLocation) {
 
         ResponseStructure<AvailableVehiclesDTO> structure = new ResponseStructure<>();
@@ -207,15 +203,8 @@ public class CustomerService {
       
             throw new InvalidLocationException();
         }
-//
-//        //  Direct validation (NO TRY–CATCH)
-//        if(!validateDestination(destinationLocation)){
-//        	throw new InvalidLocationException();
-//        }
-//
 
-        //  Get coordinates
-        
+
         Map<String, Double> sourceCoords = getCoordinatesSafe(sourceLocation);
         Map<String, Double> destCoords = getCoordinatesSafe(destinationLocation);
 
@@ -227,8 +216,6 @@ public class CustomerService {
         double dlat = destCoords.get("lat");
         double dlon = destCoords.get("lon");
 
-
-        //  Distance + duration
         Map<String, Object> distMap = getDistanceSafe(slat, slon, dlat, dlon);
 
         double distanceMeters = (double) distMap.get("distance");
@@ -240,35 +227,24 @@ public class CustomerService {
         		(distanceKm / (durationMinutes / 60.0));
                 
 
-     //  Fetch available vehicles
         List<Vehicle> vehicles = vehicleRepo.findVehiclesByCity(sourceLocation, "Available");
 
         List<VehicleDetailsDTO> dtoList = new ArrayList<>();
         for (Vehicle v : vehicles) {
-            // Fare calculation
+          
             int fare = (int) (distanceKm * v.getPricePerKM());
-
-            // Estimated time in minutes (rounded)
             int estTime = (int) durationMinutes;
-
-            // Calculate actual average speed (km/h)
             double actualSpeed = (distanceKm / (durationMinutes / 60.0));
             v.setAvgSpeed(actualSpeed);
 
-            // Prepare DTO
             VehicleDetailsDTO dto = new VehicleDetailsDTO();
             dto.setV(v);
             dto.setFare(fare);
             dto.setEstimatedTime(estTime);
             dto.setAveragespeed(actualSpeed);
-
-
             dtoList.add(dto);
         }
 
-
-
-        // 6️⃣ Create output DTO
         AvailableVehiclesDTO available = new AvailableVehiclesDTO();
         available.setAvailableVehicles(dtoList);
         available.setSourceLocation(sourceLocation);
@@ -283,9 +259,7 @@ public class CustomerService {
         return structure;
     }
 
-
-    // HELPER: Safe coordinates fetch
-    
+//===================to get coordinates from place==============
     private Map<String, Double> getCoordinatesSafe(String place) {
 
         List<Map<String, Object>> res = Optional.ofNullable(
@@ -321,10 +295,7 @@ public class CustomerService {
         return Map.of("lat", lat, "lon", lon);
     }
 
-    
-    // HELPER: Safe distance fetch
-    
-    
+  //to get distance from source and destination
     private Map<String, Object> getDistanceSafe(double slat, double slon, double dlat, double dlon) {
 
         String url = "https://api-v2.distancematrix.ai/maps/api/distancematrix/json"
@@ -381,32 +352,29 @@ public class CustomerService {
     }
     
     
-//    SEE COUSTOMER ACTIVE BOOKINGS
+//============= customer active booking=========
     public ResponseEntity<ResponseStructure<CustomerActiveBookingDTO>> CustomerSeeActiveBooking(long mobileNo) {
 
     	Customer customer = customerRepo.findByMobileNo(mobileNo)
     	        .orElseThrow(() -> new RuntimeException("Customer not found"));
 
-		customer.setBookingflag(true);  // modify managed entity
-    	customerRepo.save(customer);    // persists the change
+		customer.setBookingflag(true); 
+    	customerRepo.save(customer);    
 
         Booking booking = bookingRepo.findActiveBookingByCustomerId(customer.getMobileNo());
 
-        // No active booking
         if (booking == null) {
             customer.setBookingflag(false);
             customerRepo.save(customer);
             throw new RuntimeException("No current booking found");
         }
 
-        // Prepare DTO
         CustomerActiveBookingDTO customerActiveBookingDTO = new CustomerActiveBookingDTO();
         customerActiveBookingDTO.setCustomername(customer.getName());
         customerActiveBookingDTO.setCustomerMobile(customer.getMobileNo());
         customerActiveBookingDTO.setBooking(booking);
         customerActiveBookingDTO.setCurrentLocation(booking.getVehicle().getCurrentCity());
 
-        // Update booking flag based on booking status
         boolean isBooked = booking.getBookingStatus() != null &&
                            booking.getBookingStatus().trim().equalsIgnoreCase("booked");
         customer.setBookingflag(isBooked);
@@ -420,11 +388,55 @@ public class CustomerService {
 
         return new ResponseEntity<>(rs, HttpStatus.OK);
     }
+//--------------------------------------------------------------------------------
+    public CustomerCancelBookingResponseDTO cancelBookingByCustomer(int custId, int bookingId) {
+
+		// Fetch customer
+        Customer customer = customerRepo.findById(custId)
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
+
+        // Fetch booking
+        Booking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+
+        int penaltyCount = customer.getPenaltyCount();
+        int fare = booking.getFare();
+        int penaltyAmount = 0; 
+        
+
+        // Apply penalty based on previous cancellations
+        if (penaltyCount == 1) {
+            penaltyAmount = (fare * 10) / 100;   // 10% penalty
+        } else if (penaltyCount >= 2) {
+            penaltyAmount = (fare * 20) / 100;   // 20% penalty
+        }
+
+        // Update booking status
+        booking.setBookingStatus("cancelledByCustomer");
+
+        // Increment penalty count for future bookings
+        customer.setPenaltyCount(penaltyCount + 1);
+
+        // Save both entities
+        bookingRepo.save(booking);
+        customerRepo.save(customer);
+
+        // Prepare message
+        String message = (penaltyAmount == 0)
+                ? "Booking cancelled successfully. No penalty applied."
+                : "Booking cancelled successfully. Penalty applied: ₹" + penaltyAmount;
+
+        return new CustomerCancelBookingResponseDTO(
+                message,
+                "CANCELLED",
+                penaltyAmount);
+    }
+	}
 
 
 
 
-}
+
 
 
 

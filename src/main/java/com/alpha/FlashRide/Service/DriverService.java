@@ -1,6 +1,5 @@
 package com.alpha.FlashRide.Service;
 
-
 import java.sql.Date;
 import java.util.List;
 import java.util.Map;
@@ -28,8 +27,6 @@ import com.alpha.FlashRide.entity.Payment;
 import com.alpha.FlashRide.entity.Vehicle;
 import com.alpha.FlashRide.exception.DriverNotFoundException;
 
-
-
 @Service
 public class DriverService {
 	
@@ -54,8 +51,6 @@ public class DriverService {
     private String apiKey;
 
 
-    // GET CITY NAME (same – no change)
-    
     public String getCityName(String string, String string2) {
 
         String url = "https://us1.locationiq.com/v1/reverse?key=" + apiKey +
@@ -76,9 +71,7 @@ public class DriverService {
             return "Unknown";
     }
 
-
-
-    // SAVE DRIVER + VEHICLE  (returns ResponseStructure<Driver>)
+    // ==========save driver along with vehicle========
     
     public ResponseEntity<ResponseStructure<Driver>> saveDriverDTO(RegisterDriverVehicleDTO dto) {
 
@@ -116,7 +109,7 @@ public class DriverService {
     }
 
 
-    // FIND DRIVER BY MOBILE  (returns ResponseStructure<Driver>)
+    //================ FIND DRIVER=======================
     
     public ResponseEntity<ResponseStructure<Driver>> findDriverByMobile(long mobileNo) {
 
@@ -131,9 +124,7 @@ public class DriverService {
         return ResponseEntity.ok(rs);
     }
 
-
-
-    // DELETE DRIVER  (returns ResponseStructure<String>)
+    //============ DELETE DRIVER =========================
     
     public ResponseEntity<ResponseStructure<String>> deleteDriver(long mobileNo) {
 
@@ -158,9 +149,7 @@ public class DriverService {
         return ResponseEntity.status(404).body(rs);
     }
 
-
-
-    // UPDATE DRIVER LOCATION (returns ResponseStructure<String>)
+    // ===============UPDATE DRIVER LOCATION=============== 
     public ResponseEntity<ResponseStructure<String>> updateDriverLocation(long mobileNo,
                                                                           String latitude,
                                                                           String longitude) {
@@ -185,7 +174,7 @@ public class DriverService {
         return ResponseEntity.ok(rs);
     }
 
-//CompletionRide
+//===========================CompletionRide==============================
     
     public ResponseEntity<ResponseStructure<RideCompletionDTO>>  completeRide(int bookingId, String paymentType) {
 
@@ -201,7 +190,7 @@ public class DriverService {
     }
 
     
-    // CASH PAYMENT
+    // ===========CASH PAYMENT========================
     
     private ResponseEntity<ResponseStructure<RideCompletionDTO>>
     cashPayment(int bookingId) {
@@ -217,30 +206,17 @@ public class DriverService {
     }
 
     
-    // UPI PAYMENT
-    
-//    private ResponseEntity<ResponseStructure<RideCompletionDTO>>
-//    upiPayment(int bookingId) {
-//
-//        RideCompletionDTO dto = completeRideCommonLogic(bookingId, "UPI");
-//
-//        ResponseStructure<RideCompletionDTO> rs = new ResponseStructure<>();
-//        rs.setStatuscode(200);
-//        rs.setMessage("UPI payment successful");
-//        rs.setData(dto);
-//
-//        return ResponseEntity.ok(rs);
-//    }
+    // ========UPI PAYMENT=============
     
     private ResponseEntity<ResponseStructure<RideCompletionDTO>>
     upiPayment(int bookingId) {
 
-        // ✅ COMMON RIDE COMPLETION FIRST
+        // COMMON RIDE COMPLETION FIRST
         RideCompletionDTO dto = completeRideCommonLogic(bookingId, "UPI");
 
         Booking booking = dto.getBooking();
 
-        // ✅ GENERATE UPI QR
+        //  GENERATE UPI QR
         String upiId = booking.getVehicle().getDriver().getUpiid();
 
 
@@ -249,12 +225,11 @@ public class DriverService {
 
         byte[] qrBytes = restTemplate.getForObject(qrUrl, byte[].class);
 
-        // ✅ CREATE UPI DTO
+        //  CREATE UPI DTO
         UpiDTO upiDTO = new UpiDTO();
         upiDTO.setFare(booking.getFare());
         upiDTO.setQr(qrBytes);
 
-        // ✅ ATTACH TO MAIN DTO
         dto.setUpiDetails(upiDTO);
 
         ResponseStructure<RideCompletionDTO> rs = new ResponseStructure<>();
@@ -284,6 +259,15 @@ public class DriverService {
 
         Vehicle vehicle = booking.getVehicle();
         vehicle.setAvailableStatus("AVAILABLE");
+        
+       
+        		
+   int penaltyCount = customer.getPenaltyCount();
+   int fare = booking.getFare();
+   int  penaltyPercentage = penaltyCount * 10;
+   int penaltyAmount = (fare * penaltyPercentage) / 100;
+               
+                
 
         Payment payment = new Payment();
         payment.setBooking(booking);

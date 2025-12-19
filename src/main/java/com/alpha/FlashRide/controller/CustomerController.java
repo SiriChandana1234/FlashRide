@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.alpha.FlashRide.ResponseStructure;
 import com.alpha.FlashRide.DTO.AvailableVehiclesDTO;
+import com.alpha.FlashRide.DTO.CustomerCancelBookingResponseDTO;
 import com.alpha.FlashRide.DTO.RegisterCustomerDTO;
 import com.alpha.FlashRide.Service.CustomerService;
 import com.alpha.FlashRide.entity.Customer;
@@ -23,17 +24,17 @@ import com.alpha.FlashRide.entity.Customer;
 	    private CustomerService customerservice;
 
 	    @PostMapping("/registercustomer")
-	    public ResponseStructure<String> register(@RequestBody RegisterCustomerDTO dto) {
+	    public ResponseStructure<String> registerCustomer(@RequestBody RegisterCustomerDTO dto) {
 	        return customerservice.saveCustomer(dto);
 	    }
 
 	    @DeleteMapping("/deletecustomer")
-	    public ResponseEntity<ResponseStructure<String>> delete(@RequestParam long mobileNo) {
+	    public ResponseEntity<ResponseStructure<String>> deleteCustomer(@RequestParam long mobileNo) {
 	        return ResponseEntity.ok(customerservice.deletecustomer(mobileNo));
 	    }
 
 	    @GetMapping("/findcustomer")
-	    public ResponseEntity<ResponseStructure<Customer>> find(@RequestParam long mobileNo) {
+	    public ResponseEntity<ResponseStructure<Customer>> findCustomer(@RequestParam long mobileNo) {
 	        return ResponseEntity.ok(customerservice.findCustomer(mobileNo));
 	    }
 
@@ -52,6 +53,16 @@ import com.alpha.FlashRide.entity.Customer;
 	    @GetMapping("/servicemethod")
 	    public void servicemethod(@RequestParam long mobileNo) {
 	    	customerservice.findCustomer(mobileNo);
+	    }
+	    
+	    @PostMapping("/customercancelbooking")
+	    public ResponseEntity<CustomerCancelBookingResponseDTO> cancelBooking(
+	            @RequestParam("bookingid") int bookingId,
+	            @RequestParam("custid") int customerId) {
+
+	        return ResponseEntity.ok(
+	                customerservice.cancelBookingByCustomer(customerId, bookingId)
+	        );
 	    }
 	}
 
